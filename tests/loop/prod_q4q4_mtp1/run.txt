@@ -1,0 +1,52 @@
+START prod-q4q4-mtp1 Sat Oct  3 06:20:24 PM UTC 2026 model=glm46-abl-mtp-IQ2_XXS-Q5K.gguf ctx=auto k=q4_0 v=q4_0 spec='--spec-type draft-mtp --spec-draft-n-max 1' extra='-ub 2048'
+stopped vllm-glm46-full
+mem before load: used 2694 MiB, available 121852 MiB
+server up after 80s
+mem after load: used 116304 MiB, available 8241 MiB
+0.00.315.883 I srv    load_model: loading model '/home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf'
+0.01.433.466 W load: special_eot_id is not in special_eog_ids - the tokenizer config may be incorrect
+0.01.433.479 W load: special_eom_id is not in special_eog_ids - the tokenizer config may be incorrect
+1.13.089.291 I common_speculative_init_result: creating MTP draft context against the target model '/home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf'
+props: n_ctx 113664 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[short t=0.0] ok 29.7s tok=512 fin=length think=1929c out=0c []
+  THINK: 1.  **Analyze the User's Request:**     *   The user asks a very short, direct question in Russian: "Скажи одним словом: работаешь?" (Say in one word: are you working?).     *   The core of the reques
+[short t=1.0] ok 29.6s tok=512 fin=length think=1806c out=0c []
+  THINK: 1.  **Analyze the user's request.**     *   The user asks: "Скажи одним словом: работаешь?" (Tell me in one word: are you working?).     *   The core question is "работаешь?" (are you working?).     *
+[explain t=0.0] ok 59.6s tok=1024 fin=length think=4349c out=0c []
+  THINK: 1.  **Deconstruct the User's Request:**     *   **Core Task:** Explain what a hash table is.     *   **Constraint 1:** "in a few sentences." This is a key constraint. It means I need to be concise and
+[explain t=1.0] ok 61.7s tok=1024 fin=length think=4236c out=0c []
+  THINK: 1.  **Deconstruct the User's Request:**     *   **Core Topic:** "what a hash table is"     *   **Core Task:** "Explain... in a few sentences"     *   **Second Core Topic:** "why it is useful"     *   
+[math t=0.0] ok 59.2s tok=1024 fin=length think=3794c out=0c []
+  THINK: 1.  **Deconstruct the User's Request:**     *   **Core Question:** "What is 15 * 23?"     *   **Constraint/Instruction:** "Show the steps."  2.  **Initial Calculation (Mental Check):**     *   Okay, I
+[math t=1.0] ok 61.7s tok=1024 fin=length think=3839c out=0c []
+  THINK: 1.  **Analyze the User's Request:**     *   **Core Question:** "What is 15 * 23?" This is a straightforward multiplication problem.     *   **Constraint/Instruction:** "Show the steps." This is the ke
+[code t=0.0] ok 26.1s tok=457 fin=stop think=614c out=1260c []
+  OUT: Here’s a concise, idiomatic way to reverse a string in Python.   The function takes a string `s` and returns a new string that contains the characters of `s` in reverse order.  ```python def reverse_s
+[code t=1.0] ok 22.5s tok=380 fin=stop think=614c out=1024c []
+  OUT: Here’s a simple Python function that returns a new string with the characters in reverse order:  ```python def reverse_string(s: str) -> str:     """     Return the given string reversed.      Example
+[reason t=0.0] LOOP 138.6s tok=2350 fin=stop think=5876c out=1672c ["chunk_x7:'= 10 m? No.\\n        *   Slips '"]
+  OUT: Of course! Let's break this down step by step. This is a classic riddle that highlights the importance of considering the final step of a process.  The key is to realize that once the snail reaches th
+[reason t=1.0] ok 122.4s tok=1937 fin=stop think=4547c out=1392c []
+  OUT: **Step‑by‑step reasoning**  Let the snail start at the bottom (height = 0 m).  | Day | After daytime climb ( +3 m) | After nighttime slip ( –2 m) | Net height after the full day | |-----|-------------
+[longcode t=0.0] ok 236.9s tok=3932 fin=stop think=9363c out=6881c []
+  OUT: Of course. Let's break down the design of a token bucket rate limiter and then implement it in Go.  ### 1. The Design: Explaining the Token Bucket Algorithm  The token bucket algorithm is a metaphoric
+[longcode t=1.0] ok 228.3s tok=3621 fin=stop think=7869c out=7385c []
+  OUT: Of course. I will explain the design of a token bucket rate limiter and then provide a full, commented Go implementation using the standard and recommended library for this task.  ### 1. Design Explan
+[test] DONE bad=1/12
+loop rc=1
+[ru     t=0.0] prompt 28 tok @ 73.5 t/s | gen 768 tok @ 17.24 t/s | draft 406/361 acc=0.889 | length | 45s
+[ru     t=1.0] prompt 1 tok @ 10.8 t/s | gen 768 tok @ 16.39 t/s | draft 426/341 acc=0.8 | length | 47s
+[reason t=0.0] prompt 48 tok @ 92.4 t/s | gen 768 tok @ 17.85 t/s | draft 396/371 acc=0.937 | length | 44s
+[reason t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 16.65 t/s | draft 426/340 acc=0.798 | length | 46s
+[code   t=0.0] prompt 22 tok @ 62.5 t/s | gen 768 tok @ 17.8 t/s | draft 400/367 acc=0.917 | length | 43s
+[code   t=1.0] prompt 1 tok @ 10.7 t/s | gen 768 tok @ 16.88 t/s | draft 420/346 acc=0.824 | length | 46s
+[long100k t=0.0] prompt 111931 tok @ 125.4 t/s | gen 256 tok @ 3.61 t/s | draft 130/124 acc=0.954 | length | 963s
+[bench] mean decode 17.14 t/s over 6 runs
+mem after bench: used 119555 MiB, available 4990 MiB
+21.26.748.685 I slot print_timing: id  0 | task 10389 | draft acceptance = 0.93687 (  371 accepted /   396 generated), mean len =  1.94
+22.12.946.581 I slot print_timing: id  0 | task 10787 | draft acceptance = 0.79812 (  340 accepted /   426 generated), mean len =  1.80
+22.56.435.999 I slot print_timing: id  0 | task 11216 | draft acceptance = 0.91750 (  367 accepted /   400 generated), mean len =  1.92
+23.42.007.190 I slot print_timing: id  0 | task 11618 | draft acceptance = 0.82381 (  346 accepted /   420 generated), mean len =  1.82
+39.45.448.043 I slot print_timing: id  0 | task 12041 | draft acceptance = 0.95385 (  124 accepted /   130 generated), mean len =  1.95
+restarted vllm-glm46-full
+TESTDONE rc=1 Sat Oct  3 07:00:27 PM UTC 2026

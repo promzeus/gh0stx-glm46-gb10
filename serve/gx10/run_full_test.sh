@@ -1,7 +1,6 @@
 #!/bin/bash
-# Runs ON gx10, detached. Stops the vLLM container (it holds the GPU), serves a GGUF with llama-server,
-# records memory and the context llama-server settled on, runs the loop test and/or the speed bench,
-# then restores vLLM. One run = one configuration; the env below selects it.
+# Runs ON gx10, detached. Serves a GGUF with llama-server, records memory and the context llama-server settled on,
+# runs the loop test and/or the speed bench, stops the server. One run = one configuration; the env selects it.
 #   M        model path (required)
 #   TAG      run name; outputs go to ~/glm46_runs/$TAG, server log to /tmp/llama_$TAG.log
 #   CTX      context size, or "auto" to let --fit pick the largest context that fits, leaving FIT_MARGIN MiB
@@ -13,17 +12,14 @@
 #   EXTRA    other llama-server flags, e.g. "-ub 2048"
 #   PHASES   comma list: loop, bench
 #   LONG_TOKENS  approximate size of the long-context bench case (0 = skip)
-#   RESTORE_VLLM 1 starts vllm-glm46-full again at the end; default 0 (container removed 2026-10-03)
 set -u
 M=${M:?model path}; TAG=${TAG:-run}; CTX=${CTX:-32768}; CTK=${CTK:-q8_0}; CTV=${CTV:-q8_0}; SPEC=${SPEC:-}; EXTRA=${EXTRA:-}
 PORT=${PORT:-8011}; PHASES=${PHASES:-loop,bench}; LONG_TOKENS=${LONG_TOKENS:-0}
-FIT_MARGIN=${FIT_MARGIN:-8192}; MIN_AVAIL_MIB=${MIN_AVAIL_MIB:-3072}; RESTORE_VLLM=${RESTORE_VLLM:-0}
+FIT_MARGIN=${FIT_MARGIN:-8192}; MIN_AVAIL_MIB=${MIN_AVAIL_MIB:-3072}
 BIN=$HOME/llama.cpp/build/bin/llama-server
 LOG=/tmp/llama_$TAG.log; OUTD=$HOME/glm46_runs/$TAG; mkdir -p "$OUTD"
 CTXARG=(-c "$CTX"); [ "$CTX" = auto ] && CTXARG=(-fitt "$FIT_MARGIN")
 echo "START $TAG $(date -u) model=$(basename "$M") ctx=$CTX k=$CTK v=$CTV spec='$SPEC' extra='$EXTRA'"
-docker stop vllm-glm46-full >/dev/null 2>&1 && echo "stopped vllm-glm46-full"
-sleep 5
 free -m | awk '/Mem:/{print "mem before load: used "$3" MiB, available "$7" MiB"}'
 # shellcheck disable=SC2086
 setsid "$BIN" -m "$M" --alias glm46 "${CTXARG[@]}" -ngl 999 -fa on -ctk "$CTK" -ctv "$CTV" -np 1 \
@@ -42,7 +38,7 @@ for i in $(seq 1 240); do curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>
   kill -0 "$(cat /tmp/llama_$TAG.pid)" 2>/dev/null || break; sleep 5; done
 if ! curl -sf "http://127.0.0.1:$PORT/health" >/dev/null 2>&1; then
   echo "SERVER_NOT_UP after $((i*5))s"; tail -40 "$LOG"; kill "$(cat /tmp/llama_$TAG.pid)" 2>/dev/null
-  [ "$RESTORE_VLLM" = 1 ] && docker start vllm-glm46-full >/dev/null 2>&1; echo "TESTDONE rc=3 $(date -u)"; exit 3
+  echo "TESTDONE rc=3 $(date -u)"; exit 3
 fi
 echo "server up after $((i*5))s"
 free -m | awk '/Mem:/{print "mem after load: used "$3" MiB, available "$7" MiB"}'
@@ -51,8 +47,8 @@ curl -s "http://127.0.0.1:$PORT/props" | python3 -c "import sys,json; j=json.loa
   print('props: n_ctx', j.get('default_generation_settings',{}).get('n_ctx'), 'model', j.get('model_path','')[-60:])" 2>/dev/null
 rc=0
 case ",$PHASES," in *,loop,*)
-  sed -e 's/timeout=600/timeout=3600/' "$HOME/w4a16_serve_test.py" > /tmp/loop_test_$TAG.py
-  W4A16_BASE=http://127.0.0.1:$PORT/v1 W4A16_MODEL=glm46 W4A16_OUT=$OUTD/loop.jsonl python3 /tmp/loop_test_$TAG.py; rc=$?
+  sed -e 's/timeout=600/timeout=3600/' "$HOME/loop_test.py" > /tmp/loop_test_$TAG.py
+  LOOP_BASE=http://127.0.0.1:$PORT/v1 LOOP_MODEL=glm46 LOOP_OUT=$OUTD/loop.jsonl python3 /tmp/loop_test_$TAG.py; rc=$?
   echo "loop rc=$rc";;
 esac
 case ",$PHASES," in *,bench,*)
@@ -63,6 +59,5 @@ case ",$PHASES," in *,bench,*)
 esac
 grep -E "draft acceptance|accept|n_draft|spec" "$LOG" | tail -5 | cut -c1-200
 kill "$(cat /tmp/llama_$TAG.pid)" 2>/dev/null; sleep 8
-[ "$RESTORE_VLLM" = 1 ] && docker start vllm-glm46-full >/dev/null 2>&1 && echo "restarted vllm-glm46-full"
 cp "$LOG" "$OUTD/server.log"
 echo "TESTDONE rc=$rc $(date -u)"

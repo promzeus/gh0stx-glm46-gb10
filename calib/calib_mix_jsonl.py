@@ -2,8 +2,8 @@
 """Mixed calibration corpus for GLM-4.6: reasoning traces plus plain chat in RU, EN and code.
 
 Writes {"domain": ..., "text": ...} per line. Every row is one GLM chat exchange rendered through
-chat_template.jinja, truncated to CALIB_MAXLEN tokens. Consumers: pipeline_reap_glm.py (CALIB_JSONL,
-per-domain ranking) and the imatrix text for the 2-bit GGUF build (gguf/glm-gguf-full.sh).
+chat_template.jinja, truncated to CALIB_MAXLEN tokens. Consumer: the imatrix text of the full-model GGUF build
+(gguf/glm-gguf-full.sh), which takes a per-domain token quota from it.
 
   domain      source                                   fields                       row share
   reasoning   glaiveai/reasoning-v1-20m                prompt/response (<think>)    0.20

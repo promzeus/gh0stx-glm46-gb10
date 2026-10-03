@@ -1,0 +1,133 @@
+CAMPAIGN START Sat Oct  3 04:17:37 PM UTC 2026 model=glm46-abl-mtp-IQ2_XXS-Q5K.gguf runs=12
+== [1/12] full-base ctx=32768 k=q8_0 v=q8_0 spec='' extra=''
+server up after 75s
+mem after load: used 105182 MiB, available 19363 MiB
+props: n_ctx 32768 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[short t=0.0] ok 44.5s tok=512 fin=length think=1919c out=0c []
+[short t=1.0] ok 44.4s tok=512 fin=length think=1933c out=0c []
+[explain t=0.0] ok 90.2s tok=1024 fin=length think=4186c out=0c []
+[explain t=1.0] ok 89.9s tok=1024 fin=length think=4310c out=0c []
+[math t=0.0] ok 90.1s tok=1024 fin=length think=3907c out=0c []
+[math t=1.0] ok 89.9s tok=1024 fin=length think=4081c out=0c []
+[code t=0.0] ok 34.6s tok=395 fin=stop think=634c out=1093c []
+[code t=1.0] ok 32.5s tok=374 fin=stop think=673c out=916c []
+[reason t=0.0] LOOP 210.4s tok=2330 fin=stop think=5775c out=1288c ["chunk_x7:' 10m?** No. The snail is still'"]
+[reason t=1.0] ok 126.6s tok=1431 fin=stop think=3511c out=811c []
+[longcode t=0.0] ok 343.7s tok=3752 fin=stop think=7524c out=8076c []
+[longcode t=1.0] ok 276.5s tok=3051 fin=stop think=571c out=12324c []
+[test] DONE bad=1/12
+[ru     t=0.0] prompt 28 tok @ 74.1 t/s | gen 768 tok @ 11.44 t/s | draft None/None acc=None | length | 68s
+[ru     t=1.0] prompt 1 tok @ 10.6 t/s | gen 768 tok @ 11.46 t/s | draft None/None acc=None | length | 67s
+[reason t=0.0] prompt 48 tok @ 94.6 t/s | gen 768 tok @ 11.45 t/s | draft None/None acc=None | length | 68s
+[reason t=1.0] prompt 1 tok @ 10.7 t/s | gen 768 tok @ 11.44 t/s | draft None/None acc=None | length | 67s
+[code   t=0.0] prompt 22 tok @ 63.0 t/s | gen 768 tok @ 11.44 t/s | draft None/None acc=None | length | 67s
+[code   t=1.0] prompt 1 tok @ 10.8 t/s | gen 768 tok @ 11.45 t/s | draft None/None acc=None | length | 67s
+[bench] mean decode 11.45 t/s over 6 runs
+mem after bench: used 109510 MiB, available 15035 MiB
+TESTDONE rc=1 Sat Oct  3 04:50:21 PM UTC 2026
+== [2/12] full-mtp1 ctx=32768 k=q8_0 v=q8_0 spec='--spec-type draft-mtp --spec-draft-n-max 1' extra=''
+server up after 80s
+mem after load: used 107877 MiB, available 16669 MiB
+props: n_ctx 32768 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[ru     t=0.0] prompt 32 tok @ 48.2 t/s | gen 768 tok @ 17.62 t/s | draft 405/362 acc=0.894 | length | 44s
+[ru     t=1.0] prompt 1 tok @ 10.6 t/s | gen 768 tok @ 17.31 t/s | draft 412/355 acc=0.862 | length | 44s
+[reason t=0.0] prompt 48 tok @ 92.4 t/s | gen 768 tok @ 17.97 t/s | draft 396/370 acc=0.934 | length | 43s
+[reason t=1.0] prompt 1 tok @ 10.8 t/s | gen 768 tok @ 16.73 t/s | draft 426/341 acc=0.8 | length | 46s
+[code   t=0.0] prompt 22 tok @ 61.5 t/s | gen 768 tok @ 17.89 t/s | draft 397/370 acc=0.932 | length | 43s
+[code   t=1.0] prompt 1 tok @ 10.7 t/s | gen 768 tok @ 16.79 t/s | draft 424/342 acc=0.807 | length | 46s
+[bench] mean decode 17.39 t/s over 6 runs
+mem after bench: used 109075 MiB, available 15471 MiB
+TESTDONE rc=0 Sat Oct  3 04:56:17 PM UTC 2026
+== [3/12] full-mtp2 ctx=32768 k=q8_0 v=q8_0 spec='--spec-type draft-mtp --spec-draft-n-max 2' extra=''
+server up after 85s
+mem after load: used 107890 MiB, available 16655 MiB
+props: n_ctx 32768 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[ru     t=0.0] prompt 32 tok @ 49.1 t/s | gen 768 tok @ 14.35 t/s | draft 811/361 acc=0.445 | length | 54s
+[ru     t=1.0] prompt 1 tok @ 10.6 t/s | gen 768 tok @ 13.97 t/s | draft 835/349 acc=0.418 | length | 55s
+[reason t=0.0] prompt 48 tok @ 92.5 t/s | gen 768 tok @ 14.69 t/s | draft 792/370 acc=0.467 | length | 53s
+[reason t=1.0] prompt 1 tok @ 10.8 t/s | gen 768 tok @ 14.32 t/s | draft 808/362 acc=0.448 | length | 54s
+[code   t=0.0] prompt 22 tok @ 61.5 t/s | gen 768 tok @ 14.95 t/s | draft 787/373 acc=0.474 | length | 52s
+[code   t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 13.88 t/s | draft 843/345 acc=0.409 | length | 55s
+[bench] mean decode 14.36 t/s over 6 runs
+mem after bench: used 109088 MiB, available 15457 MiB
+TESTDONE rc=0 Sat Oct  3 05:03:13 PM UTC 2026
+== [4/12] full-mtp3 ctx=32768 k=q8_0 v=q8_0 spec='--spec-type draft-mtp --spec-draft-n-max 3' extra=''
+server up after 80s
+mem after load: used 107884 MiB, available 16661 MiB
+props: n_ctx 32768 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[ru     t=0.0] prompt 32 tok @ 48.6 t/s | gen 768 tok @ 12.24 t/s | draft 1207/364 acc=0.302 | length | 63s
+[ru     t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 11.63 t/s | draft 1268/343 acc=0.271 | length | 66s
+[reason t=0.0] prompt 48 tok @ 92.0 t/s | gen 768 tok @ 12.5 t/s | draft 1181/372 acc=0.315 | length | 62s
+[reason t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 11.48 t/s | draft 1289/336 acc=0.261 | length | 67s
+[code   t=0.0] prompt 22 tok @ 61.3 t/s | gen 768 tok @ 12.8 t/s | draft 1159/380 acc=0.328 | length | 60s
+[code   t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 12.35 t/s | draft 1205/364 acc=0.302 | length | 62s
+[bench] mean decode 12.17 t/s over 6 runs
+mem after bench: used 109115 MiB, available 15430 MiB
+TESTDONE rc=0 Sat Oct  3 05:11:02 PM UTC 2026
+== [5/12] full-eagle3 ctx=32768 k=q8_0 v=q8_0 spec='-md /home/gh0stx/models/glm46-drafts/tw_glm47_eagle3_bf16.gguf --spec-type draft-eagle3 -ngld all' extra=''
+server up after 80s
+mem after load: used 107272 MiB, available 17273 MiB
+props: n_ctx 32768 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[ru     t=0.0] prompt 32 tok @ 35.4 t/s | gen 768 tok @ 12.91 t/s | draft 1145/385 acc=0.336 | length | 60s
+[ru     t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 12.47 t/s | draft 1185/371 acc=0.313 | length | 62s
+[reason t=0.0] prompt 48 tok @ 78.2 t/s | gen 768 tok @ 14.97 t/s | draft 990/436 acc=0.44 | length | 52s
+[reason t=1.0] prompt 1 tok @ 10.6 t/s | gen 744 tok @ 14.07 t/s | draft 1023/402 acc=0.393 | stop | 53s
+[code   t=0.0] prompt 22 tok @ 61.9 t/s | gen 768 tok @ 11.31 t/s | draft 1315/327 acc=0.249 | length | 68s
+[code   t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 12.01 t/s | draft 1240/352 acc=0.284 | length | 64s
+[bench] mean decode 12.96 t/s over 6 runs
+mem after bench: used 108817 MiB, available 15728 MiB
+TESTDONE rc=0 Sat Oct  3 05:18:29 PM UTC 2026
+== [6/12] full-simple ctx=32768 k=q8_0 v=q8_0 spec='-md /home/gh0stx/models/glm46-drafts/GLM-4.5-DRAFT-0.6B-32k-Q4_0.gguf --spec-type draft-simple -ngld all' extra=''
+server up after 80s
+mem after load: used 106215 MiB, available 18330 MiB
+props: n_ctx 32768 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[ru     t=0.0] prompt 32 tok @ 50.7 t/s | gen 768 tok @ 13.44 t/s | draft 1156/381 acc=0.33 | length | 58s
+[ru     t=1.0] prompt 1 tok @ 10.4 t/s | gen 768 tok @ 12.75 t/s | draft 1219/360 acc=0.295 | length | 60s
+[reason t=0.0] prompt 48 tok @ 93.5 t/s | gen 768 tok @ 16.06 t/s | draft 971/443 acc=0.456 | length | 48s
+[reason t=1.0] prompt 1 tok @ 10.4 t/s | gen 768 tok @ 19.03 t/s | draft 813/496 acc=0.61 | length | 40s
+[code   t=0.0] prompt 22 tok @ 61.7 t/s | gen 768 tok @ 13.63 t/s | draft 1146/383 acc=0.334 | length | 57s
+[code   t=1.0] prompt 1 tok @ 10.5 t/s | gen 768 tok @ 13.48 t/s | draft 1167/377 acc=0.323 | length | 57s
+[bench] mean decode 14.73 t/s over 6 runs
+mem after bench: used 107341 MiB, available 17204 MiB
+TESTDONE rc=0 Sat Oct  3 05:25:18 PM UTC 2026
+== [7/12] long-q8q8 ctx=65536 k=q8_0 v=q8_0 spec='' extra='-ub 2048'
+server up after 80s
+mem after load: used 113070 MiB, available 11475 MiB
+props: n_ctx 65536 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[long50k t=0.0] prompt 57614 tok @ 197.1 t/s | gen 256 tok @ 4.1 t/s | draft None/None acc=None | length | 355s
+mem after bench: used 113366 MiB, available 11180 MiB
+TESTDONE rc=0 Sat Oct  3 05:32:41 PM UTC 2026
+== [8/12] long-q4q4 ctx=65536 k=q4_0 v=q4_0 spec='' extra='-ub 2048'
+server up after 80s
+mem after load: used 106933 MiB, available 17612 MiB
+props: n_ctx 65536 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[long50k t=0.0] prompt 57614 tok @ 199.1 t/s | gen 256 tok @ 4.13 t/s | draft None/None acc=None | length | 351s
+mem after bench: used 107388 MiB, available 17157 MiB
+TESTDONE rc=0 Sat Oct  3 05:40:00 PM UTC 2026
+== [9/12] long-q8q4 ctx=65536 k=q8_0 v=q4_0 spec='' extra='-ub 2048'
+server up after 75s
+mem after load: used 110119 MiB, available 14427 MiB
+props: n_ctx 65536 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[long50k t=0.0] prompt 57614 tok @ 191.5 t/s | gen 256 tok @ 4.14 t/s | draft None/None acc=None | length | 362s
+mem after bench: used 110343 MiB, available 14202 MiB
+TESTDONE rc=0 Sat Oct  3 05:47:26 PM UTC 2026
+== [10/12] long-mtp1 ctx=65536 k=q8_0 v=q8_0 spec='--spec-type draft-mtp --spec-draft-n-max 1' extra='-ub 2048'
+server up after 80s
+mem after load: used 116850 MiB, available 7695 MiB
+props: n_ctx 65536 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+[long50k t=0.0] prompt 57614 tok @ 196.1 t/s | gen 256 tok @ 6.28 t/s | draft 130/124 acc=0.954 | length | 334s
+mem after bench: used 117591 MiB, available 6954 MiB
+TESTDONE rc=0 Sat Oct  3 05:54:28 PM UTC 2026
+== [11/12] max-q4q4 ctx=auto k=q4_0 v=q4_0 spec='' extra='-ub 2048'
+server up after 80s
+mem after load: used 119273 MiB, available 5272 MiB
+props: n_ctx 177152 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+mem after bench: used 119276 MiB, available 5270 MiB
+TESTDONE rc=0 Sat Oct  3 05:55:57 PM UTC 2026
+== [12/12] max-q8q8 ctx=auto k=q8_0 v=q8_0 spec='' extra='-ub 2048'
+server up after 80s
+mem after load: used 119007 MiB, available 5538 MiB
+props: n_ctx 95744 model /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+mem after bench: used 119017 MiB, available 5528 MiB
+TESTDONE rc=0 Sat Oct  3 05:57:25 PM UTC 2026
+CAMPAIGN DONE Sat Oct  3 05:57:25 PM UTC 2026

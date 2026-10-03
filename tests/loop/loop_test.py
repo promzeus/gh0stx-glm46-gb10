@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Coherence test for the served GLM-4.6 W4A16 checkpoint.
+"""Loop test for a served GLM-4.6: 6 prompts x temp {0.0, 1.0} against an OpenAI-compatible endpoint
+(llama-server on gx10). Two long reasoning prompts stress the long-<think> path where pruned checkpoints looped.
+Flags repetition (same word 8x in a row, a 30-char chunk repeated 6+ times, 4-gram uniqueness < 0.5) so a bad
+model is caught without reading every output. A step-by-step enumeration can trip the chunk rule: read the flagged
+case before calling it a loop.
 
-Hits the vLLM OpenAI endpoint, runs the 4 bf16-comparison prompts plus 2 long
-reasoning prompts that stress the long-<think> path where W4A4 degenerated.
-Flags repetition loops so a bad quant is caught without reading every output.
+Env: LOOP_BASE (http://127.0.0.1:8000/v1), LOOP_MODEL (glm46), LOOP_OUT (output jsonl).
 """
 import json
 import os
@@ -12,11 +14,11 @@ import sys
 import time
 import urllib.request
 
-BASE = os.environ.get("W4A16_BASE", "http://127.0.0.1:8000/v1")
-MODEL = os.environ.get("W4A16_MODEL", "glm46")
-OUT = os.environ.get("W4A16_OUT", "/home/gh0stx/glm46a16_test.jsonl")
+BASE = os.environ.get("LOOP_BASE", "http://127.0.0.1:8000/v1")
+MODEL = os.environ.get("LOOP_MODEL", "glm46")
+OUT = os.environ.get("LOOP_OUT", "loop.jsonl")
 
-# 4 shared with the bf16 run (apples-to-apples) + 2 long-reasoning stressors.
+# 4 short prompts + 2 long-reasoning stressors.
 # Caps sized so the model closes </think> and emits a final answer; GLM-4.6
 # thinks even on trivial prompts, so a 64-token cap never reaches content.
 CASES = [
@@ -74,8 +76,7 @@ def call(prompt, temp, max_tokens):
     dt = time.time() - t0
     msg = j["choices"][0]["message"]
     content = msg.get("content") or ""
-    # aeon-vllm exposes GLM reasoning under "reasoning"; upstream uses
-    # "reasoning_content". Read both.
+    # llama-server puts GLM thinking in "reasoning_content"; some servers use "reasoning". Read both.
     reasoning = msg.get("reasoning") or msg.get("reasoning_content") or ""
     finish = j["choices"][0].get("finish_reason")
     usage = j.get("usage", {})

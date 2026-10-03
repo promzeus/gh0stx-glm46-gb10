@@ -1,6 +1,7 @@
-# Build the mixed calibration corpus (reasoning traces + RU/EN/code chat) used by the imatrix of the
-# 2-bit GGUF build and by the REAP re-prune fallback. CPU-only, a few GB RAM: streams six HF datasets,
-# renders GLM chat turns, writes s3://$B/corpus/calib_mix_1200x4k.jsonl ({"domain","text"}, <=4096 tokens).
+# Build the mixed calibration corpus (reasoning traces + RU/EN/code chat) for the imatrix of the full-model GGUF
+# build (gguf/glm-gguf-full.sh). CPU-only, a few GB RAM: streams six HF datasets, renders GLM chat turns, writes
+# s3://$B/corpus/calib_mix_1200x4k.jsonl ({"domain","text"}, <=4096 tokens).
+# Render with: tools/render-job.sh calib/glm46-calib-job.yaml | kubectl apply -f -
 apiVersion: batch/v1
 kind: Job
 metadata:

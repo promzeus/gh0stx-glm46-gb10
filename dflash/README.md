@@ -34,7 +34,7 @@ ubatch по 16 и при упаковке двух последовательн�
 | `draft-dflash` с фичей последнего слоя | падает | падает |
 
 На gx10 правка применена к `~/llama.cpp` и llama-server пересобран 2026-10-03 (вместе с FA-ядром `q8_0-q4_0`,
-см. `serve/gx10/README.md`).
+см. `serve/gx10/README.md`). Замеры драфтов на полной модели там же: лучший MTP с n-max 1, 11.45 → 17.39 ток/с.
 
 ## Готовые драфты
 
@@ -71,12 +71,3 @@ Qwen3.8-27B с чужим DFlash2: AL 1.5, медленнее, чем без с�
 Фичи для обучения снимаются самим llama.cpp, без vLLM: `llama_set_embeddings_layer_inp(ctx, lid, true)` до decode и
 `llama_get_embeddings_layer_inp(ctx, lid)` после (`src/llama-ext.h:110-115`), нужна правка выше. `tools/hsdump.cpp`
 проверяет этот путь на случайных токенах; для реального съёма ему нужен вход token ids и маска из файла.
-
-## Скрипты Qwen-периода
-
-`scripts/vllm_hs_extractor.py`: снимает hidden-states с целевых слоёв через forward-хуки vLLM на боксе,
-input_ids строит тем же `build_eagle3_dataset`, что и `train_dflash`, чтобы хэши совпали с offline-backend.
-`scripts/vllm_hs_extractor_mtp_calib.py`: тот же съём под калибровку keep-set MTP-головы. `scripts/offline_dflash_patch.py`:
-offline-backend для SpecForge, `train_dflash` учится на снятых hidden-states без живого teacher.
-`scripts/v4-dflash.json`: конфиг драфта под Qwen3.5-397B (hidden 4096, vocab 248320); для GLM-4.6 меняются hidden,
-vocab, mask, target_layer_ids и bos/eos.

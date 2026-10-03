@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Render a job manifest: substitute only our infra placeholders, leave the inline
 # bash in the job ($B, $f, $(date), ${qrc}) untouched. Source infra/env.sh first.
-# Usage: tools/render-job.sh prune/glm46-prune-job.yaml | kubectl apply -f -
+# Usage: tools/render-job.sh gguf/glm-gguf-full-job.yaml | kubectl apply -f -
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=/dev/null
