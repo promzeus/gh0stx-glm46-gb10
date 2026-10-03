@@ -1,0 +1,64 @@
+# Diagnostic: chat-mode coherence test on bf16 pruned (151B, pre-quant) vs NVFP4 result.
+# Isolates whether the repetition-collapse defect comes from QUANT (NVFP4) or from
+# PRUNE upstream of it. Raw transformers.generate(), no vLLM,
+# to also rule out the custom aeon-vllm fork as the cause.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm-bf16test
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 10800
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels: { app: glm-bf16test }
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      nodeSelector:
+        workload: glm-bf16test
+      tolerations:
+        - { key: glm-bf16test, effect: NoSchedule, operator: Exists }
+        - { key: nvidia.com/gpu, effect: NoSchedule, operator: Exists }
+        - { key: karpenter.sh/disruption, effect: NoSchedule, operator: Exists }
+      containers:
+        - name: bf16test
+          image: vllm/vllm-openai:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -uo pipefail
+              B=${S3_BUCKET_NAME}
+              echo "[job] deps $(date -u)"
+              python3 -m pip install -q -U accelerate awscli 2>&1 | tail -2 || true
+              export HF_HOME=/data/.hf TMPDIR=/data/tmp
+              mkdir -p /data/pruned /data/scripts /data/tmp /data/.hf && cd /data/scripts
+              aws s3 cp s3://$B/glm46/bf16_coherence_test.py ./bf16_coherence_test.py
+              echo "[job] pull glm46-pruned $(date -u)"
+              aws s3 sync s3://$B/glm46-pruned/ /data/pruned/ --no-progress 2>&1 | tail -1
+              test -f /data/pruned/config.json || { echo "[job] FATAL: pruned config.json missing"; exit 1; }
+              nvidia-smi -L 2>&1 || true
+              echo "[job] === BF16 TEST START $(date -u) ==="
+              BF16_IN=/data/pruned BF16_OUT=/data/results.jsonl python3 bf16_coherence_test.py; rc=$?
+              if [ $rc -ne 0 ]; then echo "[job] BF16_TEST_FAILED rc=$rc"; sleep 5; exit $rc; fi
+              echo "[job] === RESULTS ==="
+              cat /data/results.jsonl
+              aws s3 cp /data/results.jsonl s3://$B/glm46/bf16_coherence_results.jsonl
+              echo "[job] === BF16_TEST_DONE $(date -u) ==="
+          env:
+            - { name: AWS_REGION, value: "${AWS_REGION}" }
+          resources:
+            requests: { cpu: "48", memory: 700Gi, nvidia.com/gpu: 8 }
+            limits: { nvidia.com/gpu: 8 }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: dshm, mountPath: /dev/shm }
+      volumes:
+        - name: data
+          emptyDir: { sizeLimit: 400Gi }
+        - name: dshm
+          emptyDir: { medium: Memory, sizeLimit: 16Gi }

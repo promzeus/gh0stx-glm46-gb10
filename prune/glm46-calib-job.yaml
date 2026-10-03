@@ -1,0 +1,43 @@
+# Build the mixed calibration corpus (reasoning traces + RU/EN/code chat) used by the imatrix of the
+# 2-bit GGUF build and by the REAP re-prune fallback. CPU-only, a few GB RAM: streams six HF datasets,
+# renders GLM chat turns, writes s3://$B/corpus/calib_mix_1200x4k.jsonl ({"domain","text"}, <=4096 tokens).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm46-calib-mix
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 7200
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { app: glm46-calib-mix }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      containers:
+        - name: calib
+          image: python:3.12-slim
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              B=${S3_BUCKET_NAME}
+              echo "[job] start $(date -u)"
+              python3 -m pip install -q -U transformers datasets jinja2 awscli 2>&1 | tail -1
+              mkdir -p /model/tok /work && cd /work
+              aws s3 cp s3://$B/glm46/calib_mix_jsonl.py ./calib_mix_jsonl.py
+              for f in tokenizer.json tokenizer_config.json chat_template.jinja config.json; do
+                aws s3 cp s3://$B/glm46-pruned/$f /model/tok/$f
+              done
+              CALIB_TOK=/model/tok CALIB_OUT=/work/calib_mix_1200x4k.jsonl CALIB_N=1200 CALIB_MAXLEN=4096 CALIB_MIN=768 \
+                python3 calib_mix_jsonl.py
+              aws s3 cp /work/calib_mix_1200x4k.jsonl s3://$B/corpus/calib_mix_1200x4k.jsonl
+              echo "[job] ===== GLM46_CALIB_DONE $(date -u) ====="
+          env:
+            - { name: AWS_REGION, value: "${AWS_REGION}" }
+            - { name: HF_HOME, value: "/work/hf" }
+          resources:
+            requests: { cpu: "2", memory: 6Gi }
+            limits: { memory: 12Gi }

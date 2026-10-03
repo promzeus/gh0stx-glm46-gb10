@@ -1,0 +1,56 @@
+# Full GLM-4.6 (abliterated bf16, 705 GB) + stock MTP layer -> GGUF: q8_0, imatrix, trunk experts IQ2_XXS,
+# MTP experts Q4_K, rest Q5_K. Node pool glm-gguf-full (infra/karpenter/glm-gguf-full-nodeclass.yaml).
+# Render with: tools/render-job.sh gguf/glm-gguf-full-job.yaml | kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm-gguf-full
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 4                   # spot reclaim retry; q8_0 and imatrix (partial) resume from S3
+  activeDeadlineSeconds: 86400      # 24h across retries
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        job: glm-gguf-full
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      nodeSelector:
+        workload: glm-gguf-full
+      tolerations:
+        - { key: glm-gguf-full, effect: NoSchedule, operator: Exists }
+        - { key: karpenter.sh/disruption, effect: NoSchedule, operator: Exists }
+      containers:
+        - name: gguf
+          image: python:3.12-bookworm
+          command: ["bash", "/scripts/glm-gguf-full.sh"]
+          env:
+            - { name: SRC_PREFIX, value: "s3://${S3_BUCKET_NAME}/glm46-abliterated" }
+            - { name: BASE_PREFIX, value: "s3://${S3_BUCKET_NAME}/glm46-base" }
+            - { name: DST_PREFIX, value: "s3://${S3_BUCKET_NAME}/glm46-full-gguf" }
+            - { name: CALIB_URI, value: "s3://${S3_BUCKET_NAME}/corpus/calib_mix_1200x4k.jsonl" }
+            - { name: IMATRIX_TOKENS, value: "400000" }
+            - { name: IMATRIX_CTX, value: "2048" }
+            - { name: IMATRIX_SHARES, value: "reasoning=0.25 math=0.15 code_cot=0.15 ru=0.20 general=0.15 code=0.10" }
+            - { name: BASE_FTYPE, value: "IQ2_XXS" }
+            - { name: EXPERT_TYPE, value: "iq2_xxs" }
+            - { name: MTP_EXPERT_TYPE, value: "q4_k" }
+            - { name: REST_TYPE, value: "q5_k" }
+            - { name: OUT_NAME, value: "glm46-abl-mtp-IQ2_XXS-Q5K" }
+            - { name: WITH_MTP, value: "1" }
+            - { name: AWS_REGION, value: "${AWS_REGION}" }
+          resources:
+            requests: { cpu: "90", memory: 480Gi }    # admits 96-vCPU / 768-GiB types; threads use every core
+            limits: { memory: 680Gi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: scripts, mountPath: /scripts }
+      volumes:
+        - name: data
+          emptyDir: { sizeLimit: 1300Gi }
+        - name: scripts
+          configMap: { name: glm-gguf-full-scripts, defaultMode: 0755 }

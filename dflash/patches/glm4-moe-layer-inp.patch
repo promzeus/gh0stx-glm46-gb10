@@ -1,0 +1,13 @@
+diff --git a/src/models/glm4-moe.cpp b/src/models/glm4-moe.cpp
+index d6ae578..a67ff55 100644
+--- a/src/models/glm4-moe.cpp
++++ b/src/models/glm4-moe.cpp
+@@ -316,6 +316,8 @@ llama_model_glm4_moe::graph::graph(const llama_model & model, const llm_graph_pa
+ 
+     // NextN layers are processed by graph_mtp.
+     for (int il = 0; il < n_layer; ++il) {
++        res->t_layer_inp[il] = inpL;
++
+         ggml_tensor * inpSA = inpL;
+ 
+         // Pre-attention norm

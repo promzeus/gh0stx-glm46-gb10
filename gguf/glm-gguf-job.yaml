@@ -1,0 +1,61 @@
+# Render with: tools/render-job.sh gguf/glm-gguf-job.yaml | kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm-gguf-convert
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 28800
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        job: glm-gguf-convert
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      nodeSelector:
+        karpenter.sh/nodepool: glm-gguf
+      tolerations:
+        - key: glm-gguf
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: convert
+          image: python:3.12-bookworm
+          command: ["bash", "/scripts/glm-gguf-convert.sh"]
+          env:
+            - name: SRC_PREFIX
+              value: s3://${S3_BUCKET_NAME}/glm46-pruned
+            - name: BASE_PREFIX
+              value: s3://${S3_BUCKET_NAME}/glm46-base
+            - name: DST_PREFIX
+              value: s3://${S3_BUCKET_NAME}/glm46-pruned-gguf
+            - name: QUANTS
+              value: "Q5_K_S Q4_K_M"
+            - name: UPLOAD_Q8
+              value: "1"
+            - name: AWS_REGION
+              value: ${AWS_REGION}
+          resources:
+            requests:
+              cpu: "14"
+              memory: 52Gi
+            limits:
+              memory: 60Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 560Gi
+        - name: scripts
+          configMap:
+            name: glm-gguf-scripts
+            defaultMode: 0755

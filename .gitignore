@@ -1,0 +1,19 @@
+# weights and large artifacts never go to git
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+# local envs, caches, logs
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+# scratch
+scratch/
+tmp/
+# infra/ holds account, bucket, cluster, IAM role and node details: never pushed.
+# Required variable names are listed in README.md; values live only in infra/env.sh.
+infra/

@@ -1,0 +1,89 @@
+# Fast validation of the all-experts-calibration fix in glm_stream_gptq.py.
+# Quantizes only layers 0-4 (all in shard1, ~18GB) and checks that layer-3 routed
+# experts got a real weight_global_scale (!= 1.0). PASS -> run the full job.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm-stream-val
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 1800
+  template:
+    metadata:
+      labels: { app: glm-stream-val }
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      nodeSelector:
+        workload: glm-stream
+      tolerations:
+        - { key: nvidia.com/gpu, effect: NoSchedule, operator: Exists }
+        - { key: karpenter.sh/disruption, effect: NoSchedule, operator: Exists }
+      containers:
+        - name: val
+          image: vllm/vllm-openai:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -uo pipefail
+              B=${S3_BUCKET_NAME}
+              export AWS_REGION=${AWS_REGION} HF_HOME=/data/.hf TMPDIR=/data/tmp \
+                     PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+              mkdir -p /data/pruned /data/out /data/scripts /data/tmp /data/.hf && cd /data/scripts
+              echo "[val] deps $(date -u)"
+              python3 -m pip install -q -U \
+                llmcompressor==0.14.0 accelerate datasets safetensors huggingface_hub hf_xet \
+                sentencepiece tiktoken blobfile awscli 2>&1 | tail -2 || true
+              python3 -m pip install -q -U transformers==5.12.1 2>&1 | tail -1 || true
+              for f in glm_stream_gptq.py glm_calib_gen.py; do
+                aws s3 cp s3://$B/glm46/$f ./$f || { echo "[val] FATAL fetch $f"; exit 1; }
+              done
+              echo "[val] sync shard1 + index + config $(date -u)"
+              aws s3 cp s3://$B/glm46-pruned/model-00001-of-00016.safetensors /data/pruned/ --no-progress 2>&1 | tail -1
+              aws s3 sync s3://$B/glm46-pruned/ /data/pruned/ --no-progress \
+                --exclude "*.safetensors" 2>&1 | tail -1
+              test -f /data/pruned/config.json || { echo "[val] FATAL no config"; exit 1; }
+              echo "[val] calib $(date -u)"
+              CALIB_MODEL=/data/pruned CALIB_OUT=/data/calib.jsonl CALIB_N=16 CALIB_SEQ=1024 \
+                python3 glm_calib_gen.py
+              echo "[val] === QUANT layers 0-4 (fix: all-experts routing) $(date -u) ==="
+              STREAM_IN=/data/pruned STREAM_OUT=/data/out CALIB_JSONL=/data/calib.jsonl \
+                CALIB_N=16 CALIB_SEQ=1024 LAYERS="0-4" \
+                python3 glm_stream_gptq.py; qrc=$?
+              if [ $qrc -ne 0 ]; then echo "[val] QUANT_FAILED rc=$qrc"; sleep 5; exit $qrc; fi
+              echo "[val] === CHECK layer-3 expert global_scale $(date -u) ==="
+              python3 - <<'PY'
+              from safetensors import safe_open
+              p="/data/out/model-layer-003.safetensors"
+              exp=expone=tot=one=0; mn=9e9
+              with safe_open(p,framework="pt") as f:
+                  for k in f.keys():
+                      if k.endswith("weight_global_scale"):
+                          v=f.get_tensor(k).float(); tot+=1
+                          isone=bool((v==1.0).any()); one+=isone
+                          mn=min(mn,v.min().item())
+                          if ".experts." in k:
+                              exp+=1; expone+=isone
+              print(f"[val] L3 global_scale: total={tot} ==1.0={one} min={mn:.4g}")
+              print(f"[val] L3 EXPERT global_scale: total={exp} ==1.0={expone}")
+              print("[val] VALIDATION " + ("PASS" if exp>0 and expone==0 else "FAIL"))
+              PY
+              echo "[val] === VAL_DONE $(date -u) ==="
+          env:
+            - { name: AWS_REGION, value: "${AWS_REGION}" }
+            - { name: PYTORCH_CUDA_ALLOC_CONF, value: "expandable_segments:True" }
+          resources:
+            requests: { cpu: "3", memory: 12Gi, nvidia.com/gpu: 1 }
+            limits: { nvidia.com/gpu: 1 }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+            - { name: dshm, mountPath: /dev/shm }
+      volumes:
+        - name: data
+          emptyDir: { sizeLimit: 120Gi }
+        - name: dshm
+          emptyDir: { medium: Memory, sizeLimit: 8Gi }

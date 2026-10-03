@@ -1,0 +1,78 @@
+# PRUNE for GLM-4.6: REAP expert-prune staged bf16 353B -> ~151B (KEEP_FRAC 0.40, 64/160 experts)
+#   so NVFP4 (~85GB) + fp8 KV (120k) fits one GB10.
+# Run 1 (2026-10-01, METRIC=count, calib_corpus 128x1024) -> s3 glm46-pruned: loops on long reasoning
+#   (tests/README.md). Run 2 (step 2 in docs/findings.md): METRIC=reap, reasoning-trace calib from
+#   s3 corpus/calib_mix_1200x4k.jsonl (prune/glm46-calib-job.yaml), subsampled by CALIB_ROWS x MAXLEN.
+# r7i.48xlarge (1536GB CPU). Input s3 glm46-abliterated (705GB) -> output s3 ${PRUNED_PREFIX} (~300GB bf16).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm46-prune
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 3                   # spot reclaim auto-retry
+  activeDeadlineSeconds: 43200      # 12h: Phase A budget grows with CALIB_ROWS x MAXLEN
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels: { app: glm46-prune }
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      nodeSelector:
+        workload: glm-prune
+      tolerations:
+        - { key: glm-prune, effect: NoSchedule, operator: Exists }
+        - { key: karpenter.sh/disruption, effect: NoSchedule, operator: Exists }
+      containers:
+        - name: prune
+          image: vllm/vllm-openai:latest
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -euo pipefail
+              B=${S3_BUCKET_NAME}
+              echo "[job] start $(date -u)"
+              python3 -m pip install -q -U transformers accelerate datasets safetensors huggingface_hub hf_xet sentencepiece tiktoken blobfile awscli 2>&1 | tail -1
+              export HF_HOME=/model/hf TMPDIR=/tmp
+              mkdir -p /model/abl /work && cd /work
+              aws s3 cp s3://$B/glm46/pipeline_reap_glm.py ./pipeline_reap_glm.py
+              aws s3 cp s3://$B/corpus/calib_mix_1200x4k.jsonl ./calib_full.jsonl
+              head -n "$CALIB_ROWS" ./calib_full.jsonl > ./calib.jsonl   # rows are pre-shuffled: head = random subsample
+              echo "[job] calib rows: $(wc -l < ./calib.jsonl), MAXLEN=$MAXLEN, METRIC=$METRIC"
+              echo "[job] sync input bf16 from S3 $(date -u)"
+              aws s3 sync s3://$B/glm46-abliterated/ /model/abl --no-progress 2>&1 | tail -1
+              test -f /model/abl/config.json || { echo "[job] FATAL: abl config.json missing"; exit 1; }
+              echo "[job] disk before: $(df -h /model | tail -1)"
+              echo "[job] ===== REAP PRUNE GLM-4.6 (KEEP_FRAC=$KEEP_FRAC, METRIC=$METRIC) $(date -u) ====="
+              MODEL_ID=/model/abl OUT_DIR=/model PRUNED_DIR=/model/glm46-pruned \
+              KEEP_FRAC=$KEEP_FRAC METRIC=$METRIC CALIB_JSONL=/work/calib.jsonl MAXLEN=$MAXLEN \
+              DEVICE_MAP=cpu OMP_NUM_THREADS=180 \
+                stdbuf -oL python3 pipeline_reap_glm.py 2>&1 | grep --line-buffered -vE "Loading weights:"
+              echo "[job] prune finished $(date -u)"
+              test -f /model/glm46-pruned/config.json || { echo "[job] FATAL: prune produced no output"; exit 1; }
+              echo "[job] pruned size:"; du -sh /model/glm46-pruned
+              echo "[job] disk after: $(df -h /model | tail -1)"
+              echo "[job] ===== sync glm46-pruned -> S3 $(date -u) ====="
+              aws s3 sync /model/glm46-pruned/ s3://$B/$PRUNED_PREFIX/ --no-progress 2>&1 | tail -1
+              echo "[job] ===== GLM46_PRUNE_DONE $(date -u) ====="
+          env:
+            - { name: AWS_REGION, value: "${AWS_REGION}" }
+            - { name: TMPDIR, value: "/tmp" }
+            - { name: METRIC, value: "reap" }            # count | reap (both stats are saved either way)
+            - { name: KEEP_FRAC, value: "0.40" }         # 0.40 -> 64/160 experts (~151B); 0.50 -> 80/160 (~190B)
+            - { name: CALIB_ROWS, value: "256" }         # rows taken from the 1200-row corpus
+            - { name: MAXLEN, value: "2048" }            # tokens per row; Phase A cost ~ CALIB_ROWS x MAXLEN
+            - { name: PRUNED_PREFIX, value: "glm46-pruned-reap" }   # output prefix; run 1 stays in glm46-pruned/
+          resources:
+            requests: { cpu: "80", memory: 1400Gi }
+          volumeMounts:
+            - { name: model, mountPath: /model }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: model
+          emptyDir: { sizeLimit: 1350Gi }
+        - name: tmp
+          emptyDir: { sizeLimit: 40Gi }
