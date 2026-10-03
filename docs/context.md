@@ -6,7 +6,9 @@ Project memory: current state, decision history, pitfalls. Recipes and measureme
 
 - Model `glm46-abl-mtp-IQ2_XXS-Q5K.gguf`: full GLM-4.6 (160 experts, top-8, MTP layer `blk.92`), IQ2_XXS experts with
   imatrix, Q5_K for the rest, 93.8 GiB. In S3 under `glm46-full-gguf/` (next to the q8_0 with MTP and the imatrix), on
-  gx10 in `~/models/`, on Hugging Face as `promzeus/gh0stx-glm46-gb10-GGUF`.
+  gx10 in `~/models/`, on Hugging Face as `promzeus/gh0stx-glm46-gb10-GGUF` (public; uploaded 2026-10-03 22:13 UTC
+  by `hf/hf-upload-job.yaml` on an m7a.xlarge spot node: S3 download 6 min, upload at ~183 MB/s; size and sha256
+  on HF match the S3 object).
 - Quality: loop test without loops, 1/12 with a false flag (`tests/README.md`).
 - Working configuration: KV q4_0, `draft-mtp` n-max 1, 17.14 tok/s, context 113,664 (`serve/gx10/README.md`).
 - gx10: llama.cpp 4ebdf2c with the glm4-moe patch and the `q8_0-q4_0` FA kernel, drafts in `~/models/glm46-drafts/`.
