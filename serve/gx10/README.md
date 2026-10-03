@@ -41,8 +41,9 @@ sudo systemctl daemon-reload && sudo systemctl enable --now llama-glm46 llama-me
 ```
 
 `--cache-ram`: when a new request matches only a small part of the slot's prompt, llama-server saves the slot's KV
-state to host RAM before reusing the slot, and on GB10 host RAM is the GPU memory. The default limit is 8192 MiB, while `MemAvailable` was 6.2 GiB with the
-server loaded, open-webui running and a few requests served. The cache logs only at trace level.
+state to host RAM before reusing the slot, and on GB10 host RAM is the GPU memory. The default limit is 8192 MiB,
+while `MemAvailable` was 6.2 GiB with the server loaded, open-webui running and a few requests served. The cache logs
+only at trace level.
 
 opencode on the workstation: provider `gx10` in `~/.config/opencode/opencode.json`, package
 `@ai-sdk/openai-compatible`, `baseURL` `http://<gx10>:8000/v1`, model `gh0stx` with `tool_call` and `reasoning`,
