@@ -1,0 +1,16 @@
+# Watchdog for llama-glm46: kills the server when MemAvailable < 2 GiB (see llama-memguard.sh).
+# Install: sudo cp llama-memguard.sh /usr/local/bin/ && sudo cp llama-memguard.service /etc/systemd/system/ &&
+#          sudo systemctl daemon-reload && sudo systemctl enable --now llama-memguard
+[Unit]
+Description=Memory guard for llama-glm46
+After=llama-glm46.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/llama-memguard.sh
+Restart=always
+RestartSec=5
+OOMScoreAdjust=-900
+
+[Install]
+WantedBy=multi-user.target

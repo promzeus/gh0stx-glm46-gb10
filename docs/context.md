@@ -12,12 +12,13 @@ Project memory: current state, decision history, pitfalls. Recipes and measureme
 - Quality: loop test without loops, 1/12 with a false flag (`tests/README.md`).
 - Working configuration: KV q4_0, `draft-mtp` n-max 1, 17.14 tok/s, context 113,664 (`serve/gx10/README.md`).
 - gx10: llama.cpp 4ebdf2c with the glm4-moe patch and the `q8_0-q4_0` FA kernel, drafts in `~/models/glm46-drafts/`.
-  The vLLM container and the pruned NVFP4 model are removed. open-webui expects an OpenAI API on `localhost:8000`, no
-  service is installed there yet.
+  The vLLM container and the pruned NVFP4 model are removed. The server runs as `llama-glm46.service` on port 8000
+  next to `llama-memguard.service`; clients are opencode and open-webui 0.11.4 on port 8080 (`serve/gx10/README.md`).
 - Cluster: pool `glm-gguf-full` (12 types, spot with on-demand fallback) kept for rebuilds; pool `glm-transfer`
   (4 vCPU) for transfers; corpus `corpus/calib_mix_1200x4k.jsonl` (`calib/README.md`).
-- Open: a permanent service on port 8000 (owner's decision); an own DFlash drafter is bounded by data
-  (`dflash/README.md`).
+- Open: an own DFlash drafter is bounded by data (`dflash/README.md`); the cause of the server crash on 2026-10-03
+  (Pitfalls). The container `open-webui-0.9.6` and `~/open-webui-backup-0.9.6-20261004-0037.tgz` are kept for a
+  rollback.
 
 ## History
 
@@ -26,7 +27,8 @@ Project memory: current state, decision history, pitfalls. Recipes and measureme
 - 2026-10-02. The pruned model as GGUF Q5_K_S on llama.cpp: 9/12. The loops come from pruning, not quantization
   (`docs/findings.md`).
 - 2026-10-03. Full model with IQ2_XXS experts: no loops. MTP n-max 1 x1.52. Working configuration at 113k context.
-  Repository published as `promzeus/gh0stx-glm46-gb10`, model as `promzeus/gh0stx-glm46-gb10-GGUF`.
+  Repository published as `promzeus/gh0stx-glm46-gb10`, model as `promzeus/gh0stx-glm46-gb10-GGUF`. llama-server
+  became a systemd service with a memory guard and `--cache-ram 2048`; opencode and open-webui 0.11.4 use it.
 
 Code of the closed paths was removed on 2026-10-03: `prune/` (REAP), `quant-nvfp4/` (NVFP4 GPTQ and the streaming
 quantizer), the pruned GGUF build, the bf16 test of the pruned model, the Qwen-era `dflash/` scripts. The last version
@@ -51,4 +53,9 @@ is in commit `f25137e`.
   for the KV type pairs in `GGML_CUDA_FA_QUANTS`.
 - Background watchers. The shell here is zsh: `set -- $out` does not split words, and a comparison silently never
   fired.
+- gx10, prompt cache. llama-server saves the KV state of a slot it takes over to host RAM, up to `--cache-ram`
+  (default 8192 MiB). On GB10 that is the GPU memory, and the box has less than that free after load.
+- llama-server crash. 2026-10-03 22:28 UTC, illegal memory access in CUDA (`launch_bin_bcast_pack<op_add>`, Xid 31)
+  on the first ubatch of a new request. systemd restarted the server, the next requests of the same kind passed.
+  If it repeats, try `Environment=GGML_CUDA_DISABLE_GRAPHS=1` in the unit.
 - Network of the workstation. Internet and the route to the box dropped from time to time; retry AWS and gx10 commands.

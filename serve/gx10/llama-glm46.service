@@ -1,0 +1,28 @@
+# systemd unit for the working configuration on gx10 (serve/gx10/README.md).
+# Install: sudo cp llama-glm46.service /etc/systemd/system/ && sudo systemctl daemon-reload &&
+#          sudo systemctl enable --now llama-glm46
+# API keys: one per line in /home/gh0stx/.config/llama-glm46/api-keys (mode 600), not in this file.
+[Unit]
+Description=llama-server GLM-4.6 IQ2_XXS + MTP (gh0stx-glm46-gb10)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gh0stx
+WorkingDirectory=/home/gh0stx
+# --cache-ram 2048: the server keeps prompt states of evicted slots in host RAM, which on GB10 is the same memory
+# as the GPU; the default 8192 MiB is more than the box has free after load (serve/gx10/README.md, Memory).
+ExecStart=/home/gh0stx/llama.cpp/build/bin/llama-server \
+  -m /home/gh0stx/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf --alias gh0stx \
+  -ngl 999 -fa on -ctk q4_0 -ctv q4_0 -np 1 -ub 2048 --load-mode none -c 113664 \
+  --spec-type draft-mtp --spec-draft-n-max 1 --jinja --cache-ram 2048 \
+  --host 0.0.0.0 --port 8000 --api-key-file /home/gh0stx/.config/llama-glm46/api-keys
+Restart=always
+RestartSec=30
+LimitCORE=0
+# Unified memory: if anything has to die under memory pressure, let it be the server, not sshd.
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=multi-user.target

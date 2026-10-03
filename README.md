@@ -12,8 +12,8 @@ layer for speculative decoding, served by llama.cpp.
 | context | 113,664 tokens with MTP and KV q4_0; up to 177,152 without MTP |
 
 Model on Hugging Face: https://huggingface.co/promzeus/gh0stx-glm46-gb10-GGUF (card in `hf/README.md`, upload job in
-`hf/hf-upload-job.yaml`). Run command and measurements: `serve/gx10/README.md`. Why not pruning: `docs/findings.md`.
-State and history: `docs/context.md`.
+`hf/hf-upload-job.yaml`). Run command, systemd service and measurements: `serve/gx10/README.md`. Why not pruning:
+`docs/findings.md`. State and history: `docs/context.md`.
 
 ## Directories
 
@@ -21,7 +21,7 @@ State and history: `docs/context.md`.
 |---|---|---|
 | `gguf/` | full-model build: bf16 → q8_0 with MTP → imatrix → IQ2_XXS + Q5_K | k8s, r8i.24xlarge spot |
 | `calib/` | calibration corpus for the imatrix | k8s, small node |
-| `serve/gx10/` | llama.cpp on the box, working configuration, test runner, pull from S3 | gx10 |
+| `serve/gx10/` | llama.cpp on the box: working configuration, systemd service with a memory guard, test runner, pull from S3 | gx10 |
 | `tests/` | loop test, speed and speculation bench, raw results | gx10 |
 | `dflash/` | speculative decoding: llama.cpp patch for GLM4_MOE, ready-made drafts, notes for an own DFlash | gx10 |
 | `hf/` | model card and the job that uploads the GGUF from S3 to Hugging Face | k8s, 4 vCPU |

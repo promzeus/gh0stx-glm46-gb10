@@ -1,8 +1,7 @@
 # serve/gx10
 
 Box: ASUS GX10 / GB10, CUDA sees 121.6 GiB of memory shared with the OS, sm_121. Model
-`~/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf` (built in `gguf/`), server llama.cpp. open-webui on the box runs in the host
-network and calls `http://localhost:8000/v1`.
+`~/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf` (built in `gguf/`), server llama.cpp as a systemd service on port 8000.
 
 ## Working configuration
 
@@ -26,6 +25,39 @@ Verified on 2026-10-03, raw data in `tests/loop/prod_q4q4_mtp1/`:
 
 With an explicit `-c 102400` instead of `--fit`, about 6 GiB should stay free under the same load (estimate from 0.101
 GiB of KV per 1k tokens at q4_0, not measured).
+
+## Service
+
+`llama-glm46.service` runs the working configuration on port 8000 with `-c 113664` (the context `--fit` chose) instead
+of `-fitt`, `--alias gh0stx`, `--cache-ram 2048` and API keys from `~/.config/llama-glm46/api-keys` (mode 600, one
+line per client). The unit sets `Restart=always` and `OOMScoreAdjust=500`. `llama-memguard.service` reads
+`MemAvailable` every 2 s and kills the server below 2 GiB; systemd starts it again after 30 s plus the model load. A dry
+run with the threshold raised took the kill path on the first check.
+
+```
+sudo install -m 755 llama-memguard.sh /usr/local/bin/
+sudo install -m 644 llama-glm46.service llama-memguard.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now llama-glm46 llama-memguard
+```
+
+`--cache-ram`: when a new request matches only a small part of the slot's prompt, llama-server saves the slot's KV
+state to host RAM before reusing the slot, and on GB10 host RAM is the GPU memory. The default limit is 8192 MiB, while `MemAvailable` was 6.2 GiB with the
+server loaded, open-webui running and a few requests served. The cache logs only at trace level.
+
+opencode on the workstation: provider `gx10` in `~/.config/opencode/opencode.json`, package
+`@ai-sdk/openai-compatible`, `baseURL` `http://<gx10>:8000/v1`, model `gh0stx` with `tool_call` and `reasoning`,
+`limit.context` 113664, `limit.output` 32768.
+
+open-webui on the box: `ghcr.io/open-webui/open-webui:v0.11.4`, host network, port 8080, data in `~/open-webui`,
+`OPENAI_API_BASE_URL`, `OPENAI_API_KEY` and `WEBUI_AUTH` in `~/.config/open-webui.env` (mode 600). Upgrade from 0.9.6:
+`docker pull`, stop, `tar` of `~/open-webui`, rename the old container, `docker run` with the same volume and env file.
+The database migrated on start, the container was healthy after 35 s.
+
+open-webui generates a chat title, tags and follow-up questions with separate requests, all three enabled
+(`task.title.enable`, `task.tags.enable`, `task.follow_up.enable` in its `config` table). After a short first message
+(11 prompt tokens, 2502 generated, 156 s) the journal shows two requests of 1.27-1.33k prompt tokens with 954 and 1000
+generated tokens, 62 and 65 s, and a third one cut by the open-webui restart. These look like the background tasks:
+GLM-4.6 reasons in each, and the next message waits for them on the single slot.
 
 ## llama.cpp on the box
 
