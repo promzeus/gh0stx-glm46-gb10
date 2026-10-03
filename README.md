@@ -51,4 +51,4 @@ taint на NodePool, toleration и `karpenter.sh/do-not-disrupt: "true"` на п
 
 ## Только на gx10
 
-serve-шаблон vLLM `glm46a16_serve.sh` лежит в `~/` на боксе, в репозитории его нет.
+serve-шаблон vLLM `glm46a16_serve.sh` для удалённой пруненной NVFP4 лежит в `~/` на боксе, в репозитории его нет.

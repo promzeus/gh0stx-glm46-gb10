@@ -2,8 +2,9 @@
 
 Бокс: ASUS GX10 / GB10, 128 ГБ unified, CUDA видит 121.69 GiB, sm_121a, `~/models/`.
 
-Сейчас: `vllm-glm46-full` на aeon-vllm:v024 (compressed-tensors, без llmcompressor), 32k, порт 8000,
-шаблон `~/glm46a16_serve.sh` на боксе. Гасить `docker rm -f vllm-glm46-full`, если GPU нужен gh0stx.
+vLLM-контейнер `vllm-glm46-full` (aeon-vllm:v024, пруненная NVFP4 `glm46-nvfp4-gptq-full`, порт 8000) и сама модель
+удалены 2026-10-03 по решению пользователя: модель петляла в 7 из 12 кейсов. open-webui работает в host-сети и ходит
+на `http://localhost:8000/v1`, новая модель для него ставится на 8000. Образ aeon-vllm:v024 на боксе оставлен.
 
 Проверки по `docs/findings.md` до любых трат:
 

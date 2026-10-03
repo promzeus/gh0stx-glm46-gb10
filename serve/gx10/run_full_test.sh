@@ -13,11 +13,11 @@
 #   EXTRA    other llama-server flags, e.g. "-ub 2048"
 #   PHASES   comma list: loop, bench
 #   LONG_TOKENS  approximate size of the long-context bench case (0 = skip)
-#   RESTORE_VLLM 1 (default) starts vllm-glm46-full again at the end; 0 leaves it stopped for the next run
+#   RESTORE_VLLM 1 starts vllm-glm46-full again at the end; default 0 (container removed 2026-10-03)
 set -u
 M=${M:?model path}; TAG=${TAG:-run}; CTX=${CTX:-32768}; CTK=${CTK:-q8_0}; CTV=${CTV:-q8_0}; SPEC=${SPEC:-}; EXTRA=${EXTRA:-}
 PORT=${PORT:-8011}; PHASES=${PHASES:-loop,bench}; LONG_TOKENS=${LONG_TOKENS:-0}
-FIT_MARGIN=${FIT_MARGIN:-8192}; MIN_AVAIL_MIB=${MIN_AVAIL_MIB:-3072}; RESTORE_VLLM=${RESTORE_VLLM:-1}
+FIT_MARGIN=${FIT_MARGIN:-8192}; MIN_AVAIL_MIB=${MIN_AVAIL_MIB:-3072}; RESTORE_VLLM=${RESTORE_VLLM:-0}
 BIN=$HOME/llama.cpp/build/bin/llama-server
 LOG=/tmp/llama_$TAG.log; OUTD=$HOME/glm46_runs/$TAG; mkdir -p "$OUTD"
 CTXARG=(-c "$CTX"); [ "$CTX" = auto ] && CTXARG=(-fitt "$FIT_MARGIN")
