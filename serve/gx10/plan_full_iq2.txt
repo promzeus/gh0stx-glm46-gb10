@@ -7,8 +7,8 @@ full-mtp1|32768|q8_0|q8_0|bench|0|1|--spec-type draft-mtp --spec-draft-n-max 1|
 full-mtp2|32768|q8_0|q8_0|bench|0|1|--spec-type draft-mtp --spec-draft-n-max 2|
 full-mtp3|32768|q8_0|q8_0|bench|0|1|--spec-type draft-mtp --spec-draft-n-max 3|
 # external drafts (EAGLE-3 needs dflash/patches/glm4-moe-layer-inp.patch in the build)
-full-eagle3|32768|q8_0|q8_0|bench|0|1|-md /home/gh0stx/models/glm46-drafts/tw_glm47_eagle3_bf16.gguf --spec-type draft-eagle3|
-full-simple|32768|q8_0|q8_0|bench|0|1|-md /home/gh0stx/models/glm46-drafts/GLM-4.5-DRAFT-0.6B-32k-Q4_0.gguf --spec-type draft-simple|
+full-eagle3|32768|q8_0|q8_0|bench|0|1|-md /home/gh0stx/models/glm46-drafts/tw_glm47_eagle3_bf16.gguf --spec-type draft-eagle3 -ngld all|
+full-simple|32768|q8_0|q8_0|bench|0|1|-md /home/gh0stx/models/glm46-drafts/GLM-4.5-DRAFT-0.6B-32k-Q4_0.gguf --spec-type draft-simple -ngld all|
 # decode at 50k depth by KV type, prefill with ubatch 2048
 long-q8q8|65536|q8_0|q8_0|bench|50000|0||-ub 2048
 long-q4q4|65536|q4_0|q4_0|bench|50000|0||-ub 2048
