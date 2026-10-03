@@ -1,0 +1,53 @@
+# Upload the full-model GGUF from S3 to the Hugging Face repo (model card: hf/README.md, uploaded separately).
+# Needs Secret hf-upload-token with HF_TOKEN (write scope) in the namespace; delete it right after the upload.
+# Runs on the small glm-transfer pool (4 vCPU, 250Gi disk): a transfer needs disk and network, not cores.
+# Render with: tools/render-job.sh hf/hf-upload-job.yaml | kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: glm46-hf-upload
+  namespace: ${K8S_NS}
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 14400
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: { job: glm46-hf-upload }
+      annotations: { karpenter.sh/do-not-disrupt: "true" }
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${K8S_SA}
+      nodeSelector: { workload: glm-transfer }
+      tolerations:
+        - { key: glm-transfer, effect: NoSchedule, operator: Exists }
+        - { key: karpenter.sh/disruption, effect: NoSchedule, operator: Exists }
+      containers:
+        - name: upload
+          image: python:3.12-slim
+          command: ["/bin/bash", "-lc"]
+          args:
+            - |
+              set -euo pipefail
+              B=${S3_BUCKET_NAME}; F=glm46-abl-mtp-IQ2_XXS-Q5K.gguf
+              echo "[job] start $(date -u)"
+              python3 -m pip install -q -U "huggingface_hub[hf_xet]" awscli 2>&1 | tail -1
+              aws configure set default.s3.max_concurrent_requests 32
+              aws s3 cp "s3://$B/glm46-full-gguf/$F" "/data/$F" --only-show-errors
+              aws s3 cp "s3://$B/glm46-full-gguf/$F.sha256" "/data/$F.sha256" --only-show-errors
+              echo "[job] downloaded $(date -u)"; (cd /data && sha256sum -c "$F.sha256")
+              hf upload "$HF_REPO" "/data/$F" "$F" --repo-type model --commit-message "Add $F"
+              echo "[job] HF_UPLOAD_DONE $(date -u)"
+          env:
+            - { name: HF_REPO, value: "promzeus/gh0stx-glm46-gb10-GGUF" }
+            - { name: AWS_REGION, value: "${AWS_REGION}" }
+            - name: HF_TOKEN
+              valueFrom: { secretKeyRef: { name: hf-upload-token, key: HF_TOKEN } }
+          resources:
+            requests: { cpu: "3", memory: 6Gi }
+            limits: { memory: 12Gi }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: data
+          emptyDir: { sizeLimit: 200Gi }

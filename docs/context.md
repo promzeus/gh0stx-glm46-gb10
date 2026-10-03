@@ -1,43 +1,52 @@
-# Контекст
+# Context
 
-Рабочая память проекта: текущее состояние, история решений, грабли. Рецепты и замеры лежат в README каталогов.
+Project memory: current state, decision history, pitfalls. Recipes and measurements live in the directory READMEs.
 
-## Состояние на 2026-10-03
+## State as of 2026-10-03
 
-- Модель `glm46-abl-mtp-IQ2_XXS-Q5K.gguf`: полная GLM-4.6 (160 экспертов, top-8, MTP-слой `blk.92`), эксперты IQ2_XXS
-  с imatrix, остальное Q5_K, 93.8 GiB. В S3 `glm46-full-gguf/` (рядом q8_0 с MTP и imatrix), на gx10 `~/models/`.
-- Качество: loop-тест без петель, 1/12 с ложным флагом (`tests/README.md`).
-- Рабочая конфигурация: KV q4_0, `draft-mtp` n-max 1, 17.14 ток/с, контекст 113 664 (`serve/gx10/README.md`).
-- gx10: llama.cpp 4ebdf2c с правкой glm4-moe и FA-ядром `q8_0-q4_0`, драфты в `~/models/glm46-drafts/`. vLLM-контейнер
-  и пруненная NVFP4 удалены. open-webui ждёт OpenAI API на `localhost:8000`, сервис туда пока не поставлен.
-- Кластер: пул `glm-gguf-full` (12 типов, spot с откатом на on-demand) оставлен под пересборки; корпус
-  `corpus/calib_mix_1200x4k.jsonl` (`calib/README.md`).
-- Открыто: постоянный сервис на порт 8000 (решение пользователя); свой DFlash упирается в данные (`dflash/README.md`).
+- Model `glm46-abl-mtp-IQ2_XXS-Q5K.gguf`: full GLM-4.6 (160 experts, top-8, MTP layer `blk.92`), IQ2_XXS experts with
+  imatrix, Q5_K for the rest, 93.8 GiB. In S3 under `glm46-full-gguf/` (next to the q8_0 with MTP and the imatrix), on
+  gx10 in `~/models/`, on Hugging Face as `promzeus/gh0stx-glm46-gb10-GGUF`.
+- Quality: loop test without loops, 1/12 with a false flag (`tests/README.md`).
+- Working configuration: KV q4_0, `draft-mtp` n-max 1, 17.14 tok/s, context 113,664 (`serve/gx10/README.md`).
+- gx10: llama.cpp 4ebdf2c with the glm4-moe patch and the `q8_0-q4_0` FA kernel, drafts in `~/models/glm46-drafts/`.
+  The vLLM container and the pruned NVFP4 model are removed. open-webui expects an OpenAI API on `localhost:8000`, no
+  service is installed there yet.
+- Cluster: pool `glm-gguf-full` (12 types, spot with on-demand fallback) kept for rebuilds; pool `glm-transfer`
+  (4 vCPU) for transfers; corpus `corpus/calib_mix_1200x4k.jsonl` (`calib/README.md`).
+- Open: a permanent service on port 8000 (owner's decision); an own DFlash drafter is bounded by data
+  (`dflash/README.md`).
 
-## История
+## History
 
-- 2026-10-01. REAP-прунинг 160 → 64 экспертов (частотная метрика, 60%), NVFP4A16 RTN и GPTQ на vLLM: петли в длинном
-  reasoning, 9/12 и 7/12.
-- 2026-10-02. Пруненная модель в GGUF Q5_K_S на llama.cpp: 9/12. Петли внесены прунингом, не квантом
+- 2026-10-01. REAP pruning 160 → 64 experts (frequency metric, 60%), NVFP4A16 RTN and GPTQ on vLLM: long-reasoning
+  loops, 9/12 and 7/12.
+- 2026-10-02. The pruned model as GGUF Q5_K_S on llama.cpp: 9/12. The loops come from pruning, not quantization
   (`docs/findings.md`).
-- 2026-10-03. Полная модель с экспертами IQ2_XXS: петель нет. MTP n-max 1 x1.52. Рабочая конфигурация на 113k контекста.
-  Репозиторий опубликован как `promzeus/gh0stx-glm46-gb10`.
+- 2026-10-03. Full model with IQ2_XXS experts: no loops. MTP n-max 1 x1.52. Working configuration at 113k context.
+  Repository published as `promzeus/gh0stx-glm46-gb10`, model as `promzeus/gh0stx-glm46-gb10-GGUF`.
 
-Код закрытых путей удалён 2026-10-03: `prune/` (REAP), `quant-nvfp4/` (NVFP4 GPTQ и стрим-квант), сборка пруненного
-GGUF, bf16-тест пруненной модели, Qwen-скрипты `dflash/`. Последняя версия в коммите `f25137e`.
+Code of the closed paths was removed on 2026-10-03: `prune/` (REAP), `quant-nvfp4/` (NVFP4 GPTQ and the streaming
+quantizer), the pruned GGUF build, the bf16 test of the pruned model, the Qwen-era `dflash/` scripts. The last version
+is in commit `f25137e`.
 
-## Грабли
+## Pitfalls
 
-- gx10, память. llama-server без `-c` с запасом `--fit` по умолчанию (1 GiB) довёл бокс до `NVRM: Out of memory` и
-  перезагрузки. На GB10 `--fit` оптимистичнее `MemAvailable` примерно на 3 GiB; раннер держит сторожа.
-- gx10, перезагрузка. Контейнеры с restart policy `no` после неё не поднимаются.
-- gx10, доставка. AWS-кредов на боксе нет: presigned URL на 12 ч и aria2c. DNS на боксе отказывал, aria2c нужен
-  `--max-tries=0`. Живость процесса проверять PID-файлом: `pgrep -f` из ssh находит собственную командную строку.
-- Сборка GGUF. AMX-ядро llama-imatrix падало с SIGILL, обход `--no-repack`; сводка dry-run ломалась на `%6s`; `have()`
-  путал сбой S3 с отсутствием объекта; правка ConfigMap доходит только до следующего пода (`gguf/README.md`).
-- Кластер. r7i.48xlarge spot не давал ёмкость 9 часов; пул на 12 типов взял r8i.24xlarge за секунды.
-- Корпус. Датасет со скриптом загрузки, OOM на JSON в 1.9 ГБ, нужен `jinja2` (`calib/README.md`).
-- llama.cpp. GLM4_MOE не отдаёт входы слоёв для EAGLE-3 и DFlash (`dflash/patches/`); FA-ядра есть только для пар
-  типов KV из `GGML_CUDA_FA_QUANTS`.
-- Мои фоновые ожидания. Bash-инструмент здесь zsh: `set -- $out` не делит строку на слова, сравнение молча не срабатывало.
-- Сеть мака. Интернет и маршрут до бокса периодически рвались, команды к AWS и gx10 повторять.
+- gx10, memory. llama-server without `-c` and with the default `--fit` margin (1 GiB) drove the box to
+  `NVRM: Out of memory` and a reboot. On GB10 `--fit` is about 3 GiB more optimistic than `MemAvailable`; the runner
+  keeps a watchdog.
+- gx10, reboot. Containers with restart policy `no` do not come back after it.
+- gx10, delivery. The box has no AWS credentials: presigned URLs valid for 12 h and aria2c. DNS on the box failed, so
+  aria2c needs `--max-tries=0`. Check that a process is alive with a PID file: `pgrep -f` over ssh matches its own
+  command line.
+- GGUF build. The AMX kernel in llama-imatrix died with SIGILL, worked around with `--no-repack`; the dry-run summary
+  broke on `%6s`; `have()` confused an S3 error with a missing object; a ConfigMap fix reaches only the next pod
+  (`gguf/README.md`).
+- Cluster. r7i.48xlarge spot had no capacity for 9 hours; a pool over 12 types got r8i.24xlarge in seconds. Size nodes
+  by the real bottleneck: a 100 GB transfer runs on 4 vCPU, not on the 96-vCPU build pool.
+- Corpus. A dataset with a loading script, an OOM on a 1.9 GB JSON, `jinja2` required (`calib/README.md`).
+- llama.cpp. GLM4_MOE does not expose layer inputs for EAGLE-3 and DFlash (`dflash/patches/`); FA kernels exist only
+  for the KV type pairs in `GGML_CUDA_FA_QUANTS`.
+- Background watchers. The shell here is zsh: `set -- $out` does not split words, and a comparison silently never
+  fired.
+- Network of the workstation. Internet and the route to the box dropped from time to time; retry AWS and gx10 commands.
