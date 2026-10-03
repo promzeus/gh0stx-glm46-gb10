@@ -97,3 +97,16 @@ KV, предел контекста через `--fit` с запасом 8 GiB.
 ssht gx10 'M=~/models/glm46-abl-mtp-IQ2_XXS-Q5K.gguf setsid bash ~/run_campaign.sh ~/plan_full_iq2.txt \
   > /tmp/campaign.log 2>&1 < /dev/null &'
 ```
+
+Замеры полной модели `glm46-abl-mtp-IQ2_XXS-Q5K.gguf`, кампания `plan_full_iq2.txt` 2026-10-03 (бенч
+`tests/loop/spec_bench.py`: 6 запросов по 768 токенов, RU, reasoning, code при t=0 и t=1, 32k, KV q8_0):
+
+| режим | декод, ток/с | приём драфта | занято после загрузки |
+|---|---|---|---|
+| без спекуляции | 11.45 | | 102.7 GiB |
+| `--spec-type draft-mtp --spec-draft-n-max 1` | 17.39 | 0.80-0.93 | 105.3 GiB |
+| `draft-mtp`, n-max 2 | 14.36 | 0.41-0.47 | 105.3 GiB |
+| `draft-mtp`, n-max 3 | 12.17 | 0.26-0.33 | 105.3 GiB |
+
+MTP-голова GLM угадывает хорошо только первый токен: с n-max 2 и 3 общий приём падает, и скорость ниже, чем с 1.
+Рабочая настройка `draft-mtp` с n-max 1, x1.52 к базе.
